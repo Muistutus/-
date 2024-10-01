@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <title>Oot Prinsessa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS Styles -->
+    <style>
+        body {
+            font-family: "Orbitron", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color:black;
+
+        }
+        h2 {
+            font-family: "Orbitron", sans-serif;
+            color:#ffce00;
+        }
+        h1 {
+            font-family: "Orbitron", sans-serif;
+            color:#ffce00;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+            font-family: "Orbitron", sans-serif;
+        }
+        .reminder {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-family: "Orbitron", sans-serif;
+        }
+        .reminder button {
+            flex: 1;
+            padding: 10px;
+            font-family: "Orbitron", sans-serif;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            border:solid 2px;
+            border-radius: 15px;
+        }
+        .reminder.red button {
+            background-color: #ffce00;
+            color:black;
+        }
+        .reminder.green button {
+            background-color: #2ecc71;
+            color:white;
+        }
+        .reminder button.delete-btn {
+            background-color: #ff0101;
+            border: none;
+            color: #000000;
+            cursor: pointer;
+            padding: 10px;
+            margin-left: 10px;
+        }
+        .add-reminder {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow: hidden;
+            box-sizing: border-box;
+            font-family: "Orbitron", sans-serif;
+
+        }
+        .add-reminder input,
+        .add-reminder button {
+            width: 100%;
+            max-width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            margin-top: 15px;
+            box-sizing: border-box;
+            background-color:#ffce00;
+            border:solid 2px;
+            border-radius: 15px;
+            font-family: "Orbitron", sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Muista Hengittää</h1>
+    <div id="reminderList"></div>
+
+    <div class="add-reminder">
+        <h2>Lisää uusi muistutus</h2>
+        <input type="text" id="reminderDescription" placeholder="Kuvaus">
+        <button onclick="addReminder()">Lisää muistutus</button>
+    </div>
+</div>
+
+<!-- JavaScript Code -->
+<script>
+    let reminders = [];
+
+    function loadReminders() {
+        const storedReminders = localStorage.getItem('reminders');
+        if (storedReminders) {
+            reminders = JSON.parse(storedReminders);
+        } else {
+            // Default daily reminders
+            reminders = [
+                {
+                    id: 'default-1',
+                    description: 'E-Pilleri',
+                    type: 'daily',
+                    completed: false,
+                    isDefault: true
+                },
+                {
+                    id: 'default-2',
+                    description: 'ADHD Lääkke',
+                    type: 'daily',
+                    completed: false,
+                    isDefault: true
+                },
+                {
+                    id: 'default-3',
+                    description: 'Love your Slave',
+                    type: 'daily',
+                    completed: false,
+                    isDefault: true
+                }
+            ];
+        }
+        resetRemindersIfNeeded();
+        displayReminders();
+    }
+
+    function saveReminders() {
+        localStorage.setItem('reminders', JSON.stringify(reminders));
+    }
+
+    function resetRemindersIfNeeded() {
+        const lastReset = localStorage.getItem('lastReset');
+        const now = new Date();
+        const finnishNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Helsinki" }));
+        const resetTime = new Date(finnishNow);
+        resetTime.setHours(5, 0, 0, 0);
+
+        if (!lastReset || new Date(lastReset) < resetTime && finnishNow >= resetTime) {
+            reminders.forEach(reminder => {
+                reminder.completed = false;  // Reset completion state for all reminders
+            });
+            localStorage.setItem('lastReset', finnishNow.toISOString());
+            saveReminders();
+        }
+    }
+
+    function displayReminders() {
+        const reminderList = document.getElementById('reminderList');
+        reminderList.innerHTML = '';
+
+        reminders.forEach(reminder => {
+            const reminderDiv = document.createElement('div');
+            reminderDiv.className = 'reminder ' + (reminder.completed ? 'green' : 'red');
+
+            const button = document.createElement('button');
+            button.innerText = reminder.description;
+            button.onclick = () => toggleReminder(reminder.id);
+            reminderDiv.appendChild(button);
+
+            // Add delete button for non-default reminders
+            if (!reminder.isDefault) {
+                const deleteButton = document.createElement('button');
+                deleteButton.innerText = 'Poista';
+                deleteButton.className = 'delete-btn';
+                deleteButton.onclick = () => deleteReminder(reminder.id);
+                reminderDiv.appendChild(deleteButton);
+            }
+
+            reminderList.appendChild(reminderDiv);
+        });
+    }
+
+    function toggleReminder(id) {
+        reminders = reminders.map(reminder => {
+            if (reminder.id === id) {
+                reminder.completed = !reminder.completed;
+            }
+            return reminder;
+        });
+        saveReminders();
+        displayReminders();
+    }
+
+    function addReminder() {
+        const description = document.getElementById('reminderDescription').value;
+        if (!description) {
+            alert('Anna kuvaus.');
+            return;
+        }
+
+        const newReminder = {
+            id: Date.now(),
+            description,
+            completed: false,
+            isDefault: false
+        };
+
+        reminders.push(newReminder);
+        saveReminders();
+        displayReminders();
+
+        // Clear input
+        document.getElementById('reminderDescription').value = '';
+    }
+
+    function deleteReminder(id) {
+        reminders = reminders.filter(reminder => reminder.id !== id);
+        saveReminders();
+        displayReminders();
+    }
+
+    // Initialize Reminders
+    loadReminders();
+</script>
+</body>
+</html>
